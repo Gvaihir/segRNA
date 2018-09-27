@@ -52,16 +52,23 @@ def pw_aligner(x, y):
         ox_form = format_alignment(*a)
     ox_match = ox_form.split('\n')[1].count('|')
 
+    # exclude aligned sequence to align to the right
+    x_cut_index = ox_form.split('\n')[1].rfind('|')
+    x_cut = ox_form.split('\n')[0][x_cut_index + 1:]
+
     # align with right
-    oy = pairwise2.align.localms(x[::-1], right[::-1], 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
+    oy = pairwise2.align.localms(x_cut, right, 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
     # find number of matches
     for a in oy:
         oy_form = format_alignment(*a)
     oy_match = oy_form.split('\n')[1].count('|')
 
+    # exclude aligned sequence to align to assay indel
+    y_cut_index = oy_form.split('\n')[1].find('||')
+    y_cut = oy_form.split('\n')[0][:y_cut_index]
 
     # create an output
-    out = print("  ".join(str(x) for x in [ox_match, oy_match]))
+    out = print("  ".join(str(x) for x in [ox_match, oy_match, '\n', y_cut]))
 
 
 if __name__ == "__main__":
