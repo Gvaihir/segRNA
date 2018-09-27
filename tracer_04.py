@@ -45,16 +45,23 @@ def pw_aligner(x, y):
     """ x = sequence of interest, left = reference upstream cut site, right =  reference downstream cut site"""
 
     # align with left
-    ox = pairwise2.align.globalms(x, left, 1, -2, -2, -2, one_alignment_only = True)
+    ox = pairwise2.align.localms(x, left, 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
 
     # find number of matches
-    ox_match = list(re.finditer('-+', ox[1]))
+    for a in ox:
+        ox_form = format_alignment(*a)
+    ox_match = ox_form.split('\n')[1].count('|')
 
     # align with right
-    oy = pairwise2.align.globalms(x[::-1], right[::-1], 1, -2, -2, -2, one_alignment_only = True)
+    oy = pairwise2.align.localms(x[::-1], right[::-1], 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
+    # find number of matches
+    for a in oy:
+        oy_form = format_alignment(*a)
+    oy_match = oy_form.split('\n')[1].count('|')
+
 
     # create an output
-    out = "\t".join()
+    out = print("  ".join(str(x) for x in [ox_match, oy_match]))
 
 
 if __name__ == "__main__":
