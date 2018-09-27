@@ -42,13 +42,16 @@ def hamming_distance(s1, s2):
 # pairwise alignment function
 
 def pw_aligner(x, y):
-    """ x = sequence of interest, y = reference """
+    """ x = sequence of interest, left = reference upstream cut site, right =  reference downstream cut site"""
 
     # align with left
-    ox = pairwise2.align.globalxx(x, y, one_alignment_only = True)
+    ox = pairwise2.align.globalms(x, left, 1, -2, -2, -2, one_alignment_only = True)
+
+    # find number of matches
+    ox_match = list(re.finditer('-+', ox[1]))
 
     # align with right
-    oy = pairwise2.align.globalxx(x[::-1], y[::-1], one_alignment_only = True)
+    oy = pairwise2.align.globalms(x[::-1], right[::-1], 1, -2, -2, -2, one_alignment_only = True)
 
     # create an output
     out = "\t".join()
@@ -59,7 +62,7 @@ if __name__ == "__main__":
     # print usage message
     # __doc__ %= sys.argv[0]
     file = open(
-        "/Users/antonogorodnikov/Documents/Work/Homework/05_tracer/Dry/oak180813_tracer0001_TdTtest/Collapsed/Cas9_Cre_S2_L001_R1_001.fa")
+        "/Users/ogorodnikov/Box Sync/Ogorodnikov/LabNoteBook/05_tracer/Dry/oak180813_tracer0001_TdTtest/Collapsed/Cas9_Cre_S2_L001_R1_001.fa")
     with open(sys.argv[1], 'r') as file:
 
         # read as data frame
