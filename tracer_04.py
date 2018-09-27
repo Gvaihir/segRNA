@@ -1,4 +1,4 @@
-"""script to analyze Tracer data:
+"""Program to analyze Tracer data:
 1) load fasta file;
 2) filter sequencing error;
     2.1) exclude low coverage (normalize, threshold);
@@ -6,10 +6,10 @@
     2.3) estimate Hamming distance between each pair of sequence with same length, collapse very close sequences
          (n mismatches)
 3) perform pairwise alignment with reference sgRNA sequence;
-4) Prepare a table of sequence alignment and statistics: indel length, pam presence
+4) Returns a table of sequence alignment and statistics: ID, number of reads, matches up- and downstream the cut,
+        InDel length
+        position of PAM (in downstream portion), and alignment scheme
 
-usage:
-    %s < in.fa > out.txt
 """
 
 # data frame handling package
@@ -24,12 +24,39 @@ from Bio import pairwise2
 # Import format_alignment method
 from Bio.pairwise2 import format_alignment
 
-# Regular expression operations
-import re
+
+# Help message
+import argparse
+from argparse import RawTextHelpFormatter
+
+
+parser = argparse.ArgumentParser(
+    description='''Program to analyze Tracer data:
+1) load fasta file;
+2) filter sequencing error;
+\t2.1) exclude low coverage (normalize, threshold);
+\t2.2) exclude sequences without indels (same sequence length as reference);
+\t2.3) estimate Hamming distance between each pair of sequence with same length, collapse very close sequences
+         (n mismatches)
+3) perform pairwise alignment with reference sgRNA sequence;
+4) Returns a table of sequence alignment and statistics: ID, number of reads, matches up- and downstream the cut, 
+        InDel length
+        position of PAM (in downstream portion), and alignment scheme''', formatter_class=RawTextHelpFormatter,
+    epilog="""Trace wisely""")
+parser.add_argument('-i', help='Input fasta file with aligned reads in format: >ID-reads sequence. As an output'
+                                    'of fastx_collapser')
+parser.add_argument('-o', help='output text file')
+parser.add_argument('--left', help='sequence upstream SpCas9 cut, which is 3 nt before PAM')
+parser.add_argument('--right', help='sequence upstream SpCas9 cut')
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
+
 
 # Input sequence to align to
-left = "TGTGAACCGCATCGAGCT"
-right = "GAAGGGTAAGAGCTATGCTGGAA"
+left = sys.argv[3]
+right = sys.argv[4]
 
 # Hamming distance function
 def hamming_distance(s1, s2):
@@ -41,8 +68,10 @@ def hamming_distance(s1, s2):
 
 # pairwise alignment function
 
-def pw_aligner(x, y):
+def pw_aligner(x, left, right):
     """ x = sequence of interest, left = reference upstream cut site, right =  reference downstream cut site"""
+    """ Return the field with ID, number of reads, matches up- and downstream the cut, InDel length
+        position of PAM (in downstream portion), and alignment scheme"""
 
     # align with left
     ox = pairwise2.align.localms(x, left, 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
@@ -67,16 +96,53 @@ def pw_aligner(x, y):
     y_cut_index = oy_form.split('\n')[1].find('||')
     y_cut = oy_form.split('\n')[0][:y_cut_index]
 
-    # create an output
-    out = print("  ".join(str(x) for x in [ox_match, oy_match, '\n', y_cut]))
 
+
+    # for print output
+    x_query_out = ox_form.split('\n')[0][:x_cut_index + 1]
+    x_code_out = ox_form.split('\n')[1][:x_cut_index + 1]
+    x_ref_out = ox_form.split('\n')[2][:x_cut_index + 1]
+
+    # for print output
+    y_query_out = oy_form.split('\n')[0][y_cut_index:]
+    y_code_out = oy_form.split('\n')[1][y_cut_index:]
+    y_ref_out = oy_form.split('\n')[2][y_cut_index:]
+
+    # print indel
+    indel_query_out = y_cut
+    indel_code_out = ' ' * y_cut_index
+    indel_ref_out = '*' * y_cut_index
+
+    # create an output
+    out = ('ID {}\tReads {}\tL_match {}\tR_match {}\tInDel {}\tPAM {}\n'
+                '{}\t{}\t{}\n'
+                '{}\t{}\t{}\n'
+                '{}\t{}\t{}\n'.format(
+        result_toContinue[result_toContinue.Seq == x].ID.item(),
+        result_toContinue[result_toContinue.Seq == x].Reads.item(),
+        ox_match,
+        oy_match,
+        indel_query_out.__len__(),
+        y_query_out.find('GG'),
+        x_query_out,
+        indel_query_out,
+        y_query_out,
+        x_code_out,
+        indel_code_out,
+        y_code_out,
+        x_ref_out,
+        indel_ref_out,
+        y_ref_out
+        ))
+
+
+    return(print(out))
+
+# record std.out
+original = sys.stdout
 
 if __name__ == "__main__":
 
-    # print usage message
-    # __doc__ %= sys.argv[0]
-    file = open(
-        "/Users/ogorodnikov/Box Sync/Ogorodnikov/LabNoteBook/05_tracer/Dry/oak180813_tracer0001_TdTtest/Collapsed/Cas9_Cre_S2_L001_R1_001.fa")
     with open(sys.argv[1], 'r') as file:
 
         # read as data frame
@@ -136,36 +202,18 @@ if __name__ == "__main__":
 
             results = results.append(res)
 
-    # delete 41 nt sequences (we look for indels)
-    result_toContinue = results[results.Length != 41].iloc[:,0:3]
+            # delete 41 nt sequences (we look for indels)
+            result_toContinue = results[results.Length != 41].iloc[:, 0:3]
+
+            # open output file
+            outPut = open(sys.argv[2], 'w')
+            sys.stdout = outPut
+
+            # make an output
+            scheme_result = result_toContinue['Seq'].apply(pw_aligner, args=(left, right,))
+
+            sys.stdout = original
 
 
 
 
-for a in ox:
-    print(format_alignment(*a))
-
-print(contents)
-
-
-
-
-
-#output variable
-outFile = ""
-
-#import input file (fasta)
-if len(sys.argv) > 1:
-    print(sys.argv)
-    print(__doc__)
-    sys.exit()
-
-    records = sum(1 for _ in sys.stdin) / 4
-    print("records in file", records, file = sys.stderr)
-
-
-outFile = open("demofile.txt", "a")
-
-
-
-### Some changes
