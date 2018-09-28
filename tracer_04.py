@@ -51,12 +51,12 @@ parser.add_argument('--right', help='sequence upstream SpCas9 cut')
 if len(sys.argv)==1:
     parser.print_help(sys.stderr)
     sys.exit(1)
-
+argsP = parser.parse_args()
 
 
 # Input sequence to align to
-left = sys.argv[3]
-right = sys.argv[4]
+left = argsP.left
+right = argsP.right
 
 # Hamming distance function
 def hamming_distance(s1, s2):
@@ -74,7 +74,7 @@ def pw_aligner(x, left, right):
         position of PAM (in downstream portion), and alignment scheme"""
 
     # align with left
-    ox = pairwise2.align.localms(x, left, 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
+    ox = pairwise2.align.localms(x, left, 1, 0, -2, -1, one_alignment_only = True, penalize_end_gaps = False)
 
     # find number of matches
     for a in ox:
@@ -82,11 +82,11 @@ def pw_aligner(x, left, right):
     ox_match = ox_form.split('\n')[1].count('|')
 
     # exclude aligned sequence to align to the right
-    x_cut_index = ox_form.split('\n')[1].rfind('|')
+    x_cut_index = max(ox_form.split('\n')[1].rfind(i) for i in ".|")
     x_cut = ox_form.split('\n')[0][x_cut_index + 1:]
 
     # align with right
-    oy = pairwise2.align.localms(x_cut, right, 1, 0, -1, -1, one_alignment_only = True, penalize_end_gaps = False)
+    oy = pairwise2.align.localms(x_cut, right, 1, 0, -2, -1, one_alignment_only = True, penalize_end_gaps = False)
     # find number of matches
     for a in oy:
         oy_form = format_alignment(*a)
@@ -111,7 +111,7 @@ def pw_aligner(x, left, right):
     # print indel
     indel_query_out = y_cut
     indel_code_out = ' ' * y_cut_index
-    indel_ref_out = '*' * y_cut_index
+    indel_ref_out = oy_form.split('\n')[2][:y_cut_index]
 
     # create an output
     out = ('ID {}\tReads {}\tL_match {}\tR_match {}\tInDel {}\tPAM {}\n'
@@ -143,7 +143,7 @@ original = sys.stdout
 
 if __name__ == "__main__":
 
-    with open(sys.argv[1], 'r') as file:
+    with open(argsP.i, 'r') as file:
 
         # read as data frame
         fastaDFin = pd.read_csv(file, sep='\t', header=None)
@@ -206,7 +206,7 @@ if __name__ == "__main__":
             result_toContinue = results[results.Length != 41].iloc[:, 0:3]
 
             # open output file
-            outPut = open(sys.argv[2], 'w')
+            outPut = open(argsP.o, 'w')
             sys.stdout = outPut
 
             # make an output
