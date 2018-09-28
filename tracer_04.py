@@ -203,8 +203,8 @@ if __name__ == "__main__":
             results = results.append(res)
 
             # delete 41 nt sequences (we look for indels)
-            result_toContinue = results[results.Length != 41].iloc[:, 0:3]
-
+            result_toContinue_pre = results[results.Length != 41].iloc[:, 0:3]
+            result_toContinue = result_toContinue_pre.sort_values(by=['Reads'])
             # open output file
             outPut = open(argsP.o, 'w')
             sys.stdout = outPut
