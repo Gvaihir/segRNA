@@ -82,7 +82,7 @@ def pw_aligner(x, left, right):
     ox_match = ox_form.split('\n')[1].count('|')
 
     # exclude aligned sequence to align to the right
-    x_cut_index = max(ox_form.split('\n')[1].rfind(i) for i in ".|")
+    x_cut_index = max(ox_form.split('\n')[1].rfind(i) for i in '||')
     x_cut = ox_form.split('\n')[0][x_cut_index + 1:]
 
     # align with right
@@ -113,8 +113,12 @@ def pw_aligner(x, left, right):
     indel_code_out = ' ' * y_cut_index
     indel_ref_out = oy_form.split('\n')[2][:y_cut_index]
 
+    # count Insertions and deletions
+    insert = len(y_cut)
+    deletion = len(right) - len(oy_form.split('\n')[0][y_cut_index:])
+
     # create an output
-    out = ('ID {}\tReads {}\tL_match {}\tR_match {}\tInDel {}\tPAM {}\n'
+    out = ('ID {}\tReads {}\tL_match {}\tR_match {}\tInsert {}\tDel {}\tPAM {}\n'
                 '{}\t{}\t{}\n'
                 '{}\t{}\t{}\n'
                 '{}\t{}\t{}\n'.format(
@@ -122,8 +126,9 @@ def pw_aligner(x, left, right):
         result_toContinue[result_toContinue.Seq == x].Reads.item(),
         ox_match,
         oy_match,
-        indel_query_out.__len__(),
-        y_query_out.find('GG'),
+        insert,
+        deletion,
+        y_query_out.find('GGTAAGA'),
         x_query_out,
         indel_query_out,
         y_query_out,
