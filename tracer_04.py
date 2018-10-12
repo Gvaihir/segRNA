@@ -182,7 +182,7 @@ if __name__ == "__main__":
             # iterate over each sequence
             for sequence in fastaDF_rel['Seq']:
                 # quantify Hamming distance
-                fastaDF_rel_dist = fastaDF_rel
+                fastaDF_rel_dist = fastaDF_rel.copy()
                 fastaDF_rel_dist['Hamming'] = fastaDF_rel_dist['Seq'].apply(hamming_distance, args=(sequence,))
 
                 # combine all reads with distance is <= 2
