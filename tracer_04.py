@@ -114,7 +114,7 @@ def pw_aligner(x, left, right):
     indel_ref_out = oy_form.split('\n')[2][:y_cut_index]
 
     # count Insertions and deletions
-    insert = len(y_cut)
+    insert = len(y_cut)-y_cut.count('-')
     deletion = len(right) - len(oy_form.split('\n')[0][y_cut_index:])
 
     # create an output
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         # loop over every unique value and extract DFs for each
         for uniqLenght in fastaDictDFfilter['Length'].unique():
 
-            # extrsact relevant DF
+            # extract relevant DF
             fastaDF_rel = fastaDictDFfilter[fastaDictDFfilter.Length == uniqLenght]
 
             ## iterative filtering and collapsing of reads
@@ -208,7 +208,7 @@ if __name__ == "__main__":
             results = results.append(res)
 
             # delete 41 nt sequences (we look for indels)
-            result_toContinue_pre = results[results.Length != 41].iloc[:, 0:3]
+            result_toContinue_pre = results[results.Length != 51].iloc[:, 0:3]
             result_toContinue = result_toContinue_pre.sort_values(by=['Reads'], ascending=False)
             # open output file
             outPut = open(argsP.o, 'w')
